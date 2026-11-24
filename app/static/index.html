@@ -141,6 +141,11 @@
       <label>Research field
         <input name="research_field" placeholder="e.g. planetary science, heat transfer" autocomplete="off">
         <small>Tells Claude what your library is about, for better tags and summaries.</small></label>
+      <fieldset class="search-fields">
+        <legend>Search box looks in</legend>
+        <div id="search-fields"></div>
+        <small>Matches in the first group are listed first, then key contributions and methodology, then abstract and keywords.</small>
+      </fieldset>
       <label>Claude model
         <input name="claude_model" placeholder="Claude Code's default" autocomplete="off">
         <small>For example <code>sonnet</code> or <code>opus</code>.</small></label>

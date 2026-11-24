@@ -13,6 +13,10 @@ from . import db
 
 CONFIG_PATH = db.DB_PATH.parent / "config.json"
 
+# Fields the search box can look in; the web UI ranks matches by field.
+SEARCH_FIELDS = ("title", "authors", "year", "journal", "tags", "notes",
+                 "contributions", "methodology", "abstract", "keywords")
+
 # key: (environment variable, default)
 FIELDS = {
     "sources": ("KM_SOURCES", ""),              # folder with the PDFs
@@ -22,6 +26,7 @@ FIELDS = {
     "research_field": ("KM_RESEARCH_FIELD", ""),  # tells Claude what the library is about
     "claude_model": ("KM_CLAUDE_MODEL", ""),    # empty = Claude Code's default
     "openalex_key": ("KM_OPENALEX_KEY", ""),    # optional; gives OpenAlex requests their own budget
+    "search_fields": (None, list(SEARCH_FIELDS)),  # what the search box looks in
 }
 
 _lock = threading.Lock()
@@ -36,7 +41,9 @@ def _load() -> dict:
 
 def get(key: str):
     env, default = FIELDS[key]
-    value = _load().get(key, os.environ.get(env, default))
+    value = _load().get(key, os.environ.get(env, default) if env else default)
+    if isinstance(default, list):
+        return value if isinstance(value, list) else default
     return int(value) if isinstance(default, int) else (value or "")
 
 

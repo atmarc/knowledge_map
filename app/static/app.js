@@ -9,6 +9,7 @@ const state = {
   selected: new Set(),    // papers picked for the Compare view
   openSections: new Set(["contributions"]),  // collapsible sections kept open across re-renders
   llm: false,
+  searchFields: null,    // from Settings; null = all of SEARCH_FIELDS
   sourcesOk: true,       // false until a literature folder that exists is set
   view: "table",
 };
@@ -67,20 +68,45 @@ function shortLabel(p) {
 
 // ---------- filtering & sorting (shared by both views) ----------
 
+// What the search box can look in. Matches rank by tier: a paper whose title matches is listed
+// before one where only the abstract does. Keys match config.SEARCH_FIELDS on the server.
+const SEARCH_FIELDS = [
+  { key: "title", label: "Title and filename", tier: 0, text: (p) => [p.title, p.filename] },
+  { key: "authors", label: "Authors", tier: 0, text: (p) => p.authors },
+  { key: "year", label: "Year", tier: 0, text: (p) => [p.year] },
+  { key: "journal", label: "Journal", tier: 0, text: (p) => [p.journal] },
+  { key: "tags", label: "Tags", tier: 0, text: (p) => p.tags },
+  { key: "notes", label: "Your notes", tier: 0, text: (p) => [p.notes] },
+  { key: "contributions", label: "Key contributions", tier: 1, text: (p) => p.contributions },
+  { key: "methodology", label: "Methodology", tier: 1, text: (p) => p.methodology },
+  { key: "abstract", label: "Abstract", tier: 2, text: (p) => [p.abstract] },
+  { key: "keywords", label: "Keywords", tier: 2, text: (p) => p.keywords },
+];
+
+// The best (lowest) tier in which the query matches, or Infinity; 0 when there is no query.
+function searchTier(p) {
+  const q = state.query.toLowerCase();
+  if (!q) return 0;
+  let best = Infinity;
+  for (const f of SEARCH_FIELDS) {
+    if (f.tier >= best || (state.searchFields && !state.searchFields.includes(f.key))) continue;
+    if ((f.text(p) || []).some((v) => v != null && String(v).toLowerCase().includes(q))) best = f.tier;
+  }
+  return best;
+}
+
 function matchesFilter(p) {
   if (state.category && p.category !== state.category) return false;
   if ([...state.tagFilter].some((t) => !p.tags.includes(t))) return false;
-  const q = state.query.toLowerCase();
-  if (!q) return true;
-  const hay = [p.title, p.filename, p.journal, p.notes, p.authors.join(" "), p.tags.join(" "), p.year,
-    p.contributions.join(" "), p.methodology.join(" ")].join(" ").toLowerCase();
-  return hay.includes(q);
+  return searchTier(p) < Infinity;
 }
 
 function visiblePapers() {
-  const list = state.papers.filter(matchesFilter);
+  const tier = new Map();
+  const list = state.papers.filter((p) => matchesFilter(p) && tier.set(p, searchTier(p)));
   const { key, desc } = state.sort;
   list.sort((a, b) => {
+    if (tier.get(a) !== tier.get(b)) return tier.get(a) - tier.get(b); // best matches first
     const av = a[key] ?? "", bv = b[key] ?? "";
     const cmp = typeof av === "number" && typeof bv === "number" ? av - bv : String(av).localeCompare(String(bv));
     return desc ? -cmp : cmp;
@@ -306,8 +332,9 @@ async function loadRefs(list) {
 let settingsPrompted = false;
 
 async function load() {
-  const [papers, status] = await Promise.all([api("/api/papers"), api("/api/status")]);
+  const [papers, status, settings] = await Promise.all([api("/api/papers"), api("/api/status"), api("/api/config")]);
   setPapers(papers);
+  state.searchFields = settings.search_fields;
   state.llm = status.llm_configured;
   state.sourcesOk = status.sources_ok;
   state.scanning = status.scan.running || rescanPending; // the scan may not have started yet
@@ -433,11 +460,17 @@ const settingsDialog = $("#settings");
 $("#settings-form").elements.backup_hour.innerHTML =
   Array.from({ length: 24 }, (_, h) => `<option value="${h}">${String(h).padStart(2, "0")}:00</option>`).join("");
 
+$("#search-fields").innerHTML = SEARCH_FIELDS.map((f, i) =>
+  `${i && f.tier !== SEARCH_FIELDS[i - 1].tier ? '<span class="break"></span>' : ""}
+   <label class="check"><input type="checkbox" name="search_fields" value="${f.key}"> ${f.label}</label>`).join("");
+
 async function openSettings(message = "") {
   const form = $("#settings-form");
-  for (const [key, value] of Object.entries(await api("/api/config"))) {
-    if (form.elements[key]) form.elements[key].value = value ?? "";
+  const settings = await api("/api/config");
+  for (const [key, value] of Object.entries(settings)) {
+    if (key !== "search_fields" && form.elements[key]) form.elements[key].value = value ?? "";
   }
+  form.querySelectorAll('[name="search_fields"]').forEach((box) => { box.checked = settings.search_fields.includes(box.value); });
   $("#settings-msg").textContent = message;
   if (dlDialog.open) dlDialog.close();
   if (!settingsDialog.open) settingsDialog.showModal();
@@ -449,8 +482,10 @@ $("#settings-cancel").addEventListener("click", () => settingsDialog.close());
 
 $("#settings-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const body = Object.fromEntries(new FormData(e.target));
+  const data = new FormData(e.target);
+  const body = Object.fromEntries(data);
   body.backup_hour = +body.backup_hour;
+  body.search_fields = data.getAll("search_fields");
   try {
     const r = await api("/api/config", { method: "PUT", body: JSON.stringify(body) });
     settingsDialog.close();

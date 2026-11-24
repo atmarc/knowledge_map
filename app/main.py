@@ -146,6 +146,7 @@ class Settings(BaseModel):
     research_field: str | None = None
     claude_model: str | None = None
     openalex_key: str | None = None
+    search_fields: list[str] | None = None
 
 
 @app.get("/api/config")
@@ -161,6 +162,10 @@ def put_config(settings: Settings):
             raise HTTPException(400, f"Folder not found: {changes[key]}")
     if not 0 <= changes.get("backup_hour", 0) <= 23:
         raise HTTPException(400, "The backup hour must be between 0 and 23")
+    if "search_fields" in changes:
+        changes["search_fields"] = [f for f in config.SEARCH_FIELDS if f in changes["search_fields"]]
+        if not changes["search_fields"]:
+            raise HTTPException(400, "Choose at least one thing for the search box to look in")
     moved = "sources" in changes and changes["sources"] != config.get("sources")
     saved = config.update(changes)
     if moved:

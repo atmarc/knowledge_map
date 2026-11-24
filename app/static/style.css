@@ -329,3 +329,8 @@ tr.paper:focus-visible td:first-child { box-shadow: inset 3px 0 0 var(--accent);
 #settings-form .dl-foot { gap: 8px; margin-top: 4px; }
 .empty-table { padding: 32px 0; text-align: center; color: var(--muted); }
 .empty-table p { margin: 0 0 12px; }
+#settings-form fieldset.search-fields { border: 0; padding: 0; margin: 14px 0 0; }
+#settings-form fieldset.search-fields legend { font-weight: 550; font-size: 13px; padding: 0; margin-bottom: 6px; }
+#search-fields { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+#search-fields .break { flex-basis: 100%; height: 0; }
+#settings-form label.check { display: inline-flex; align-items: center; gap: 5px; margin: 0; font-weight: 400; }
