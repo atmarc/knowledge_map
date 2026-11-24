@@ -9,6 +9,7 @@ const state = {
   selected: new Set(),    // papers picked for the Compare view
   openSections: new Set(["contributions"]),  // collapsible sections kept open across re-renders
   llm: false,
+  sourcesOk: true,       // false until a literature folder that exists is set
   view: "table",
 };
 
@@ -182,6 +183,10 @@ const PDF_ICON = `<svg viewBox="0 0 16 16" width="16" height="16" fill="none" st
 function renderTable() {
   const list = visiblePapers();
   $("#empty").hidden = state.papers.length > 0;
+  $("#empty").innerHTML = state.scanning ? "<p>Building your library… papers appear here as they are processed.</p>"
+    : state.sourcesOk ? "<p>No PDFs found in your literature folder. Add some and click “Rescan folder”.</p>"
+    : `<p>No literature folder is set, so there is nothing to show yet.</p>
+       <button class="primary" data-open-settings>Choose a folder in Settings</button>`;
 
   document.querySelectorAll("th[data-sort]").forEach((th) => {
     th.classList.toggle("sorted", th.dataset.sort === state.sort.key);
@@ -299,6 +304,8 @@ async function load() {
   const [papers, status] = await Promise.all([api("/api/papers"), api("/api/status")]);
   setPapers(papers);
   state.llm = status.llm_configured;
+  state.sourcesOk = status.sources_ok;
+  state.scanning = status.scan.running || rescanPending; // the scan may not have started yet
   if (!status.sources_ok && !settingsPrompted && !settingsDialog.open) {
     settingsPrompted = true;
     openSettings(status.sources ? `The literature folder ${status.sources} doesn't exist.` : "Choose the folder that holds your PDFs to get started.");
@@ -432,6 +439,7 @@ async function openSettings(message = "") {
 }
 
 $("#settings-btn").addEventListener("click", () => openSettings());
+$("#empty").addEventListener("click", (e) => { if (e.target.closest("[data-open-settings]")) openSettings(); });
 $("#settings-cancel").addEventListener("click", () => settingsDialog.close());
 
 $("#settings-form").addEventListener("submit", async (e) => {

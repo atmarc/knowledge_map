@@ -327,3 +327,5 @@ tr.paper:focus-visible td:first-child { box-shadow: inset 3px 0 0 var(--accent);
 #settings-form label select { justify-self: start; }
 #settings-form small { font-weight: 400; color: var(--muted); font-size: 12px; }
 #settings-form .dl-foot { gap: 8px; margin-top: 4px; }
+.empty-table { padding: 32px 0; text-align: center; color: var(--muted); }
+.empty-table p { margin: 0 0 12px; }
