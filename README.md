@@ -57,6 +57,20 @@ All settings are in the Settings panel (gear icon) and saved to `data/config.jso
 | Claude model | e.g. `sonnet` or `opus`; empty for Claude Code's default |
 | OpenAlex API key | Optional, [free](https://openalex.org/settings/api); without one OpenAlex allows ~1000 requests a day per IP address |
 
+## Backups
+
+Set a *Backup folder* in Settings to turn backups on. It can be any folder, typically a mounted network
+share or an external drive. Knowledge Map never mounts anything itself.
+
+- **When:** once a day, at the first check after the chosen hour (12:00 by default). The cloud icon in the
+  header shows the date of the last backup; click it to back up now.
+- **What:** PDFs missing from the backup folder are copied, and PDFs changed locally replace their older copy.
+  A snapshot of the database is saved to `knowledge_map/library.db` in the backup folder.
+- **Never deleted:** files removed from your library stay in the backup, and files that are newer in the
+  backup folder are left alone.
+- **When the folder isn't available** (e.g. the share isn't mounted), that day's backup is skipped and the
+  icon turns orange; hover over it to see why. The next day, or a click, tries again.
+
 ## Privacy
 
 Your PDFs never leave your machine, except for the text sent to Claude when you run an analysis, which
@@ -67,3 +81,7 @@ downloads watcher only looks up DOIs printed in PDFs, so documents without one c
 
 Everything is stored in `data/`: `library.db` (papers, tags, notes, citations) and `config.json`. To restore
 a backup, stop the app and copy `knowledge_map/library.db` from the backup folder to `data/library.db`.
+
+## License
+
+[MIT](LICENSE)
