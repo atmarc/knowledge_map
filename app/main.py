@@ -239,8 +239,14 @@ def refresh_metadata(paper_id: int):
     return paper(paper_id)
 
 
+def _require_claude() -> None:
+    if not analyze.is_configured():
+        raise HTTPException(400, "Claude analysis needs the claude CLI (Claude Code), which wasn't found on PATH")
+
+
 @app.post("/api/papers/{paper_id}/analyze")
 def analyze_paper(paper_id: int):
+    _require_claude()
     conn = db.connect()
     _paper_or_404(conn, paper_id)
     try:
@@ -256,6 +262,7 @@ class AnalyzeRequest(BaseModel):
 
 @app.post("/api/analyze")
 def analyze_many(req: AnalyzeRequest):
+    _require_claude()
     conn = db.connect()
     ids = req.ids
     if ids is None:

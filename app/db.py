@@ -2,10 +2,13 @@
 
 import json
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "library.db"
+_schema_lock = threading.Lock()
+_schema_ready: set[Path] = set()
 
 JSON_FIELDS = ("authors", "keywords", "tags", "openalex_refs", "contributions", "methodology")
 
@@ -110,11 +113,17 @@ def connect() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
-    conn.executescript(SCHEMA)
-    existing = {r["name"] for r in conn.execute("PRAGMA table_info(papers)")}
-    for col, decl in MIGRATIONS.items():
-        if col not in existing:
-            conn.execute(f"ALTER TABLE papers ADD COLUMN {col} {decl}")
+    # Once per database: on a new one, background jobs connect at the same moment and would
+    # otherwise race to add the same columns ("duplicate column name").
+    with _schema_lock:
+        if DB_PATH not in _schema_ready:
+            conn.executescript(SCHEMA)
+            existing = {r["name"] for r in conn.execute("PRAGMA table_info(papers)")}
+            for col, decl in MIGRATIONS.items():
+                if col not in existing:
+                    conn.execute(f"ALTER TABLE papers ADD COLUMN {col} {decl}")
+            conn.commit()
+            _schema_ready.add(DB_PATH)
     return conn
 
 
