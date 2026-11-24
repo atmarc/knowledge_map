@@ -1,8 +1,5 @@
 # Your library: database, settings (may hold an API key), job state
 data/
-# Local test PDFs
-sources/
-
 .venv/
 __pycache__/
 *.pyc
