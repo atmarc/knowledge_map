@@ -85,3 +85,17 @@ a backup, stop the app and copy `knowledge_map/library.db` from the backup folde
 ## License
 
 [MIT](LICENSE)
+
+## Screenshots
+
+**Table**: metadata, tags and key contributions for each paper.
+
+![Table view](docs/screenshots/table.png)
+
+**Citations**: which papers in the library cite which.
+
+![Citation graph](docs/screenshots/citations.png)
+
+**Recommended**: works your papers cite most that aren't in your library yet.
+
+![Recommended view](docs/screenshots/recommended.png)
