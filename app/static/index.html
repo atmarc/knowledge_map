@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Knowledge Map</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>Knowledge Map</h1>
+      <nav class="tabs">
+        <a href="#table" data-view="table">Table</a>
+        <a href="#citations" data-view="citations">Citations</a>
+        <a href="#recommended" data-view="recommended">Recommended</a>
+        <a href="#compare" data-view="compare">Compare</a>
+      </nav>
+      <span id="count" class="muted"></span>
+      <button id="backup" class="backup-btn" title="Backup status">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4.5 12.5a3 3 0 0 1-.4-6 4 4 0 0 1 7.8 0 3 3 0 0 1-.4 6"/><path d="M8 14V8M5.8 10 8 7.8 10.2 10"/></svg>
+        <span id="backup-label"></span>
+      </button>
+      <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg>
+      </button>
+    </div>
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search title, author, tags, notes…" autocomplete="off">
+      <div id="category" class="segmented" role="group" aria-label="Document type">
+        <button data-cat="">All</button>
+        <button data-cat="papers" class="active">Papers</button>
+        <button data-cat="books">Books</button>
+        <button data-cat="slides">Slides</button>
+      </div>
+      <button id="scan" title="Look for new PDFs in the literature folder, then for new articles in Downloads">Rescan folder</button>
+    </div>
+    <div id="progress" class="progress" hidden><div class="bar"></div><span class="label"></span></div>
+  </header>
+
+  <div id="tagbar" class="tagbar"></div>
+
+  <main id="view-table">
+    <table id="papers">
+      <thead>
+        <tr>
+          <th class="pick" title="Select papers to compare their references"></th>
+          <th data-sort="title">Title</th>
+          <th data-sort="first_author">First author</th>
+          <th data-sort="year" class="num">Year</th>
+          <th data-sort="journal">Journal</th>
+          <th data-sort="cited_by_n" class="num" title="Papers in your library that cite this one">Cited by<br><span class="sub">library</span></th>
+          <th data-sort="cited_by_count" class="num" title="Citations worldwide (OpenAlex)">Cited by<br><span class="sub">global</span></th>
+          <th data-sort="ref_count" class="num" title="Entries in this paper's reference list">Refs</th>
+          <th>Tags</th>
+          <th>Key contributions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p id="empty" class="muted" hidden>No papers found. Drop PDFs into the sources folder and click “Rescan folder”.</p>
+  </main>
+
+  <main id="view-citations" hidden>
+    <div class="graph-toolbar">
+      <label><input type="checkbox" id="g-isolated"> Show papers without links</label>
+      <label><input type="checkbox" id="g-byyear"> Arrange by year</label>
+      <label>Color by
+        <select id="g-color">
+          <option value="year">Year</option>
+          <option value="folder">Folder</option>
+          <option value="tag">First tag</option>
+        </select>
+      </label>
+      <span id="g-legend" class="legend"></span>
+      <span class="muted hint">Arrows point from the citing paper to the cited one · node size = citations within your library · dashed = weak match (author + year)</span>
+    </div>
+    <div class="graph-wrap">
+      <svg id="graph"></svg>
+      <aside id="g-panel" class="g-panel" hidden></aside>
+      <div id="g-tooltip" class="g-tooltip" hidden></div>
+    </div>
+  </main>
+
+  <main id="view-recommended" hidden>
+    <details class="rec-section" open>
+      <summary><h2>Cited by your library</h2></summary>
+      <p class="muted intro">Works cited most often by the papers in your library that are not in your library themselves.
+        The category switch and tag filters restrict which of <em>your</em> papers are counted; the search box filters the works.</p>
+      <table id="recommended" class="worklist">
+        <thead><tr><th class="num">#</th><th class="num" title="Number of your papers citing this work">Cited by</th><th>Work</th><th>Cited by these papers in your library</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button class="rec-more" data-more="cited" hidden></button>
+    </details>
+
+    <details class="rec-section" open>
+      <summary><h2>Citing your library</h2> <span id="citing-status" class="muted"></span></summary>
+      <p class="muted intro">Works not in your library that cite the most of your papers, from OpenAlex's “cited by” lists, refreshed
+        once a day. <span id="citing-coverage"></span> The category switch and tag filters restrict which of <em>your</em> papers are counted.</p>
+      <table id="citing" class="worklist">
+        <thead><tr><th class="num">#</th><th class="num" title="Number of your papers this work cites">Cites</th><th>Work</th><th>Cites these papers in your library</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button class="rec-more" data-more="citing" hidden></button>
+    </details>
+  </main>
+
+  <main id="view-compare" hidden>
+    <div class="cmp-head">
+      <div id="cmp-selected" class="cmp-selected"></div>
+      <input id="cmp-add" list="cmp-papers" placeholder="Add a paper by author, year or title…" autocomplete="off">
+      <datalist id="cmp-papers"></datalist>
+      <label id="cmp-min-wrap">Show works cited by <select id="cmp-min"></select></label>
+    </div>
+    <div id="cmp-body"></div>
+  </main>
+
+  <div id="selbar" class="selbar" hidden>
+    <span id="selbar-n"></span>
+    <button class="primary" id="selbar-compare">Compare references</button>
+    <button id="selbar-clear">Clear</button>
+  </div>
+
+  <dialog id="settings" class="dl-dialog" aria-labelledby="settings-heading">
+    <form id="settings-form">
+      <h2 id="settings-heading">Settings</h2>
+      <label>Literature folder
+        <input name="sources" required placeholder="/home/you/Papers" autocomplete="off">
+        <small>Where your PDFs are. Subfolders named <code>books</code> and <code>slides</code> are listed as books and slides.</small></label>
+      <label>Watch for downloaded articles
+        <input name="downloads" placeholder="Empty: don't watch" autocomplete="off">
+        <small>New article PDFs found here are offered for adding to the library (moved and renamed AuthorYear-Title.pdf).</small></label>
+      <label>Backup folder
+        <input name="backup_dir" placeholder="Empty: no backups" autocomplete="off">
+        <small>For example a mounted network share. Once a day, new and changed PDFs and a database snapshot are copied there. Nothing there is ever deleted.</small></label>
+      <label>Daily backup after <select name="backup_hour"></select></label>
+      <label>Research field
+        <input name="research_field" placeholder="e.g. planetary science, heat transfer" autocomplete="off">
+        <small>Tells Claude what your library is about, for better tags and summaries.</small></label>
+      <label>Claude model
+        <input name="claude_model" placeholder="Claude Code's default" autocomplete="off">
+        <small>For example <code>sonnet</code> or <code>opus</code>.</small></label>
+      <label>OpenAlex API key
+        <input name="openalex_key" type="password" placeholder="Optional" autocomplete="off">
+        <small>Without one, OpenAlex shares a small daily budget with everyone on your network. Free at openalex.org/settings/api.</small></label>
+      <p id="settings-msg" class="dl-msg" role="status"></p>
+      <div class="dl-foot"><button type="button" id="settings-cancel">Cancel</button> <button type="submit" class="primary">Save</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="downloads" class="dl-dialog" aria-labelledby="dl-heading" tabindex="-1">
+    <h2 id="dl-heading"></h2>
+    <p class="muted">Adding moves the file from Downloads into your literature folder and renames it.</p>
+    <ul id="dl-list"></ul>
+    <p id="dl-msg" class="dl-msg" role="status"></p>
+    <div class="dl-foot"><button id="dl-later">Decide later</button></div>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="vendor/d3.min.js"></script>
+  <script src="app.js"></script>
+  <script src="graph.js"></script>
+  <script src="works.js"></script>
+</body>
+</html>
