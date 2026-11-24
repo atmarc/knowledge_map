@@ -92,7 +92,7 @@ a backup, stop the app and copy `knowledge_map/library.db` from the backup folde
 
 ![Table view](docs/screenshots/table.png)
 
-**Citations**: which papers in the library cite which.
+**Citations**: which papers in the library cite which. Selecting a paper highlights its links and shows its details.
 
 ![Citation graph](docs/screenshots/citations.png)
 

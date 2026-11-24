@@ -258,10 +258,15 @@ function openInTable(id) {
   requestAnimationFrame(() => document.querySelector(`tr.paper[data-id="${id}"]`)?.scrollIntoView({ block: "center" }));
 }
 
-// "#compare/12,34" preselects papers, so a comparison can be bookmarked.
+// "#compare/12,34" preselects papers and "#citations/12" selects a paper in the graph,
+// so both can be bookmarked.
 function route() {
   const [view, arg] = location.hash.slice(1).split("/");
   if (view === "compare" && arg) arg.split(",").map(Number).filter(Boolean).forEach((id) => state.selected.add(id));
+  if (view === "citations" && +arg) {
+    if (window.graphView) window.graphView.select(+arg);
+    else state.graphSelect = +arg; // graph.js isn't loaded yet on the first route
+  }
   setView(view);
 }
 
@@ -652,7 +657,7 @@ $("#papers").addEventListener("click", async (e) => {
     const id = +action.closest("[data-id]").dataset.id;
     if (action.dataset.action === "pdf") window.open(`/api/papers/${id}/pdf`, "_blank");
     if (action.dataset.action === "analyze") analyzePaper(id, action);
-    if (action.dataset.action === "graph") { location.hash = "#citations"; window.graphView?.select(id); }
+    if (action.dataset.action === "graph") location.hash = `#citations/${id}`;
     if (action.dataset.action === "refresh") {
       action.disabled = true;
       await api(`/api/papers/${id}/refresh`, { method: "POST" });

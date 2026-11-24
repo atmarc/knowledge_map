@@ -279,13 +279,14 @@
 
   // ---------- interface used by app.js ----------
 
-  let pendingSelect = null;
+  let pendingSelect = state.graphSelect || null;
   window.graphView = {
     render() {
       if (g.sig === null || g.dirty) {
         g.dirty = false;
         g.building = build().then(() => {
-          if (pendingSelect) { select(pendingSelect, true); pendingSelect = null; }
+          // The first build can run before the papers have loaded: keep waiting for the paper.
+          if (pendingSelect && state.byId.has(pendingSelect)) { select(pendingSelect, true); pendingSelect = null; }
         });
       } else {
         renderPanel();
