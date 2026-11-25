@@ -334,3 +334,13 @@ tr.paper:focus-visible td:first-child { box-shadow: inset 3px 0 0 var(--accent);
 #search-fields { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 #search-fields .break { flex-basis: 100%; height: 0; }
 #settings-form label.check { display: inline-flex; align-items: center; gap: 5px; margin: 0; font-weight: 400; }
+
+/* ---------- BibTeX ---------- */
+.bib-btn { display: block; margin: 6px 0 0 -3px; padding: 0 3px; font-size: 10px; font-weight: 600; line-height: 15px;
+  color: var(--muted); border-radius: 3px; letter-spacing: .02em; }
+.bib-btn:hover { color: var(--accent); }
+#settings-form .export { display: grid; gap: 4px; margin-top: 16px; font-weight: 550; font-size: 13px; }
+#settings-form .export small { font-weight: 400; color: var(--muted); font-size: 12px; }
+a.button { justify-self: start; display: inline-block; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: var(--text); text-decoration: none; font-weight: 400; }
+a.button:hover { border-color: var(--accent); }

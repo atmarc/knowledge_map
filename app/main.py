@@ -5,11 +5,11 @@ from pathlib import Path
 from urllib.parse import quote, urlparse
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import analyze, backup, citations, citing, config, db, downloads, scanner, works
+from . import analyze, backup, bibtex, citations, citing, config, db, downloads, scanner, works
 
 STATIC = Path(__file__).resolve().parent / "static"
 
@@ -276,6 +276,20 @@ def analyze_many(req: AnalyzeRequest):
             " WHERE p.missing = 0 AND p.analyzed_at IS NULL AND length(t.text) >= 500 ORDER BY p.id")]
     started = analyze.analyze_in_background(ids)
     return {"started": started, "count": len(ids), "analysis": analyze.status}
+
+
+@app.get("/api/papers/{paper_id}/bibtex", response_class=PlainTextResponse)
+def paper_bibtex(paper_id: int):
+    text = bibtex.for_paper(db.connect(), paper_id)
+    if text is None:
+        raise HTTPException(404, "Paper not found")
+    return text
+
+
+@app.get("/api/bibtex", response_class=PlainTextResponse)
+def library_bibtex():
+    return PlainTextResponse(bibtex.library(db.connect()), media_type="application/x-bibtex; charset=utf-8",
+                             headers={"Content-Disposition": 'attachment; filename="literature.bib"'})
 
 
 @app.get("/api/papers/{paper_id}/pdf")

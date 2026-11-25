@@ -197,6 +197,7 @@ function detailRow(p) {
       <div class="actions" data-id="${p.id}">
         <button class="primary" data-action="pdf">Open PDF</button>
         <button data-action="graph">Show in citation graph</button>
+        <button data-action="bibtex">Copy BibTeX</button>
         ${analyzeBtn}
         <button data-action="refresh" title="Re-read metadata and references from the PDF, Crossref and OpenAlex">Re-extract metadata</button>
       </div>
@@ -224,7 +225,8 @@ function renderTable() {
   $("#papers tbody").innerHTML = list.map((p) => `
     <tr class="paper ${state.open === p.id ? "open" : ""}" data-id="${p.id}" tabindex="-1">
       <td class="pick"><input type="checkbox" data-pick="${p.id}" ${state.selected.has(p.id) ? "checked" : ""} title="Select for comparison">
-        <a class="pdf-link" href="/api/papers/${p.id}/pdf" target="_blank" rel="noopener" title="Open PDF" aria-label="Open PDF">${PDF_ICON}</a></td>
+        <a class="pdf-link" href="/api/papers/${p.id}/pdf" target="_blank" rel="noopener" title="Open PDF" aria-label="Open PDF">${PDF_ICON}</a>
+        <button class="bib-btn" data-bib="${p.id}" title="Copy BibTeX citation (b)" aria-label="Copy BibTeX citation">bib</button></td>
       <td class="title">${esc(p.title || p.filename)}${p.folder ? `<span class="file">${esc(p.folder)}</span>` : ""}</td>
       <td class="author">${authorLabel(p)}</td>
       <td class="num">${p.year ?? ""}</td>
@@ -314,6 +316,30 @@ async function analyzePaper(id, button) {
     toast(e.message, 5000);
   }
   render();
+}
+
+async function copyBibtex(id) {
+  try {
+    const res = await fetch(`/api/papers/${id}/bibtex`);
+    if (!res.ok) throw new Error(res.statusText);
+    const text = await res.text();
+    await writeClipboard(text);
+    toast(`BibTeX copied: ${text.match(/^@\w+\{([^,]+),/)?.[1] ?? ""}`);
+  } catch (err) {
+    toast(`Couldn't copy the BibTeX entry: ${err.message}`, 5000);
+  }
+}
+
+async function writeClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+  // Not on localhost or https (e.g. opened through a LAN address): the clipboard API is unavailable.
+  const ta = Object.assign(document.createElement("textarea"), { value: text });
+  ta.style.cssText = "position:fixed;opacity:0";
+  document.body.append(ta);
+  ta.select();
+  const ok = document.execCommand("copy");
+  ta.remove();
+  if (!ok) throw new Error("the browser blocked clipboard access");
 }
 
 async function loadRefs(list) {
@@ -627,6 +653,8 @@ $("#papers").addEventListener("keydown", (e) => {
     document.activeElement.scrollIntoView({ block: "nearest" });
   } else if (e.key.toLowerCase() === "p" && !e.repeat) {
     window.open(`/api/papers/${e.target.dataset.id}/pdf`, "_blank");
+  } else if (e.key.toLowerCase() === "b" && !e.repeat) {
+    copyBibtex(+e.target.dataset.id);
   }
 });
 
@@ -683,6 +711,8 @@ $("#papers").addEventListener("click", async (e) => {
   }
   const goto = e.target.closest("[data-goto]");
   if (goto) return openInTable(+goto.dataset.goto);
+  const bib = e.target.closest("[data-bib]");
+  if (bib) return copyBibtex(+bib.dataset.bib);
   const pick = e.target.closest("[data-pick]");
   if (pick) return toggleSelected(+pick.dataset.pick, pick.checked);
   if (e.target.closest("input, textarea, a, summary, details")) return;
@@ -692,6 +722,7 @@ $("#papers").addEventListener("click", async (e) => {
     const id = +action.closest("[data-id]").dataset.id;
     if (action.dataset.action === "pdf") window.open(`/api/papers/${id}/pdf`, "_blank");
     if (action.dataset.action === "analyze") analyzePaper(id, action);
+    if (action.dataset.action === "bibtex") copyBibtex(id);
     if (action.dataset.action === "graph") location.hash = `#citations/${id}`;
     if (action.dataset.action === "refresh") {
       action.disabled = true;

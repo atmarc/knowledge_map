@@ -152,6 +152,11 @@
       <label>OpenAlex API key
         <input name="openalex_key" type="password" placeholder="Optional" autocomplete="off">
         <small>Without one, OpenAlex shares a small daily budget with everyone on your network. Free at openalex.org/settings/api.</small></label>
+      <div class="export">
+        <span>Export</span>
+        <a class="button" href="/api/bibtex" download="literature.bib">Download literature.bib</a>
+        <small>BibTeX entries for every document in the library, with the same citation keys as “Copy BibTeX”.</small>
+      </div>
       <p id="settings-msg" class="dl-msg" role="status"></p>
       <div class="dl-foot"><button type="button" id="settings-cancel">Cancel</button> <button type="submit" class="primary">Save</button></div>
     </form>
