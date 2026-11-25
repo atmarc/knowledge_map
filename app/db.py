@@ -100,6 +100,11 @@ MIGRATIONS = {
     "methodology": "TEXT DEFAULT '[]'",
     "analysis_model": "TEXT",
     "analyzed_at": "TEXT",
+    # Bibliographic details for citations; `pages` above is the PDF's page count.
+    "volume": "TEXT",
+    "issue": "TEXT",
+    "page_range": "TEXT",
+    "biblio_checked": "INTEGER DEFAULT 0",  # volume/issue/pages looked up (they may still be empty)
 }
 
 

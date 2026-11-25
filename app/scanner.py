@@ -123,6 +123,30 @@ def _scan(sources: Path) -> dict:
     return result
 
 
+BIBLIO = ("volume", "issue", "page_range")
+
+
+def backfill_biblio(sources: Path | None) -> int:
+    """Volume, issue and pages for papers indexed before these were stored: from the BibTeX file
+    when it has them, else from Crossref. Papers are marked as checked even when nothing is found."""
+    conn = db.connect()
+    bib = load_bib(sources) if sources else {}
+    done = 0
+    for r in conn.execute("SELECT id, path, doi FROM papers WHERE biblio_checked = 0 AND missing = 0").fetchall():
+        entry = bib_entry(bib, Path(r["path"])) or {}
+        fields = {k: entry[k] for k in BIBLIO if entry.get(k)}
+        if r["doi"] and len(fields) < len(BIBLIO):
+            resp = extract._get(f"{extract.CROSSREF_URL}/{r['doi']}", serial=True)
+            if resp is None:
+                continue  # offline: try again on the next start
+            if resp.status_code == 200:
+                cr, _ = extract.parse_crossref(resp.json()["message"])
+                fields = {**{k: cr[k] for k in BIBLIO if cr.get(k)}, **fields}
+        db.update_paper(conn, r["id"], {**fields, "biblio_checked": 1})
+        done += 1
+    return done
+
+
 def scan_in_background(sources: Path) -> bool:
     if status["running"]:
         return False

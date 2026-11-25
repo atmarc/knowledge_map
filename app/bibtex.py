@@ -92,6 +92,12 @@ def entry(p: dict, key: str) -> str:
     fields.append(("title", "{" + _escape(p.get("title") or p["filename"].removesuffix(".pdf")) + "}"))
     if p.get("journal"):
         fields.append(("publisher" if kind == "book" else "journal", _escape(p["journal"])))
+    for field, column in (("volume", "volume"), ("number", "issue"), ("pages", "page_range")):
+        if p.get(column) and not (field == "pages" and kind == "book"):  # a book's "pages" is a chapter's
+            value = _escape(p[column])
+            if field == "pages":  # "123-145" -> "123--145", BibTeX's page range dash
+                value = re.sub(r"^(\w+)\s*[-\u2013\u2014]{1,2}\s*(\w+)$", r"\1--\2", value)
+            fields.append((field, value))
     if p.get("year"):
         fields.append(("year", str(p["year"])))
     if p.get("doi"):

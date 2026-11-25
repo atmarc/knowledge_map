@@ -149,6 +149,9 @@ def parse_bib(path: Path) -> dict[str, dict]:
             "first_author_family": authors[0][1] if authors else None,
             "year": int(year.group(1)) if year else None,
             "journal": f.get("journal") or f.get("booktitle") or None,
+            "volume": f.get("volume") or None,
+            "issue": f.get("number") or None,
+            "page_range": f.get("pages") or None,
         }
     return entries
 
@@ -238,6 +241,10 @@ def parse_crossref(msg: dict) -> tuple[dict, list[dict]]:
         "abstract": abstract,
         "keywords": msg.get("subject", []),
         "cited_by_count": msg.get("is-referenced-by-count"),
+        "volume": msg.get("volume"),
+        "issue": msg.get("issue"),
+        # Many journals (e.g. AGU) number articles instead of giving page ranges.
+        "page_range": msg.get("page") or msg.get("article-number"),
     }
 
     refs = []
@@ -345,6 +352,7 @@ def extract_metadata(path: Path, bib: dict | None = None, use_network: bool = Tr
         "title": None, "authors": [], "first_author_family": None, "year": None,
         "journal": None, "doi": None, "abstract": None, "keywords": [],
         "pages": len(reader.pages), "metadata_source": "filename", "_refs": [],
+        "volume": None, "issue": None, "page_range": None, "biblio_checked": 1,
     }
 
     # Filename hints like "Ryan2020 - Title.pdf" or "Reach2023.pdf"
@@ -379,7 +387,7 @@ def extract_metadata(path: Path, bib: dict | None = None, use_network: bool = Tr
 
     # Curated BibTeX entry
     if bib:
-        for k in ("title", "authors", "first_author_family", "year", "journal"):
+        for k in ("title", "authors", "first_author_family", "year", "journal", "volume", "issue", "page_range"):
             if bib.get(k):
                 result[k] = bib[k]
         result["metadata_source"] = "bibtex"
@@ -402,6 +410,9 @@ def extract_metadata(path: Path, bib: dict | None = None, use_network: bool = Tr
 
     if work:
         cr, refs = parse_crossref(work)
+        for k in ("volume", "issue", "page_range"):  # the curated BibTeX entry wins
+            if cr.get(k) and not result[k]:
+                result[k] = cr[k]
         for k in ("title", "year", "journal", "abstract", "cited_by_count"):
             if cr.get(k) and not (k in ("title", "year") and bib and bib.get(k)):
                 result[k] = cr[k]

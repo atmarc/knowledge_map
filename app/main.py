@@ -1,5 +1,6 @@
 """Knowledge Map: a local web table and citation graph of the papers in the sources folder."""
 
+import threading
 from collections import defaultdict
 from pathlib import Path
 from urllib.parse import quote, urlparse
@@ -43,6 +44,7 @@ def _scan() -> bool:
 @app.on_event("startup")
 def _startup():
     _scan()
+    threading.Thread(target=scanner.backfill_biblio, args=(sources(),), daemon=True).start()
     backup.start_scheduler()
     downloads.start_scheduler()
     citing.start_scheduler()
